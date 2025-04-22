@@ -507,9 +507,10 @@ client.connect_signal("unfocus", function(c) c.border_color = beautiful.border_n
 
 
 --Gaps
-beautiful.useless_gap  = 4
+beautiful.useless_gap  = 3
+
 -- Adjust the gap size as needed
-awful.layout.suit.tile.left.gaps = { top = 30 }
+awful.layout.suit.tile.left.gaps = { top = 45 }
 
 --Autostart
 awful.spawn.with_shell("picom")
@@ -524,6 +525,6 @@ naughty.config.defaults.position = "top_left"
 naughty.config.defaults.shape = function(cr, width, height)
     gears.shape.rounded_rect(cr, width, height, 10)
 end
-beautiful.notification_max_height = 200
-beautiful.notification_max_width = 350
-
+beautiful.notification_max_height = 300
+beautiful.notification_max_width = 250
+beautiful.notification_icon_size = 72
