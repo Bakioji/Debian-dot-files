@@ -176,32 +176,21 @@ local function set_wallpaper(s)
     end
 end
 
--- Re-set wallpaper when a screen's geometry changes (e.g. different resolution)
-screen.connect_signal("property::geometry", set_wallpaper)
-awful.screen.connect_for_each_screen(function(s)
-    -- Create the wibar for each screen
-    s.mywibar = awful.wibar({ position = "top", screen = s })
-    s.mywibar.height = 24
-    s.mywibar:setup {
-        layout = wibox.layout.align.horizontal,
-        { -- Left widget
-            layout = wibox.layout.fixed.horizontal,
-            -- Add widgets to your bar
-        },
-        nil, -- Middle widget (empty)
-        { -- Right widget
-            layout = wibox.layout.fixed.horizontal,
-            -- Add right widgets
-        },
-    }
-end)
+-- Set screen padding (adjust '30' to match Polybar's height)
 
-    -- Set wallpaper
+awful.screen.connect_for_each_screen(function(s)
+    s.padding = { top = 45 }
+
     set_wallpaper(s)
 
-    -- Each screen has its own tag table.
-    awful.tag({ "1", "2", "3", "4", "5", "6", "7", "8", "9" }, s, awful.layout.layouts[1])
+    if s.tags then
+        for _, tag in ipairs(s.tags) do
+            tag:delete()
+        end
+    end
 
+    awful.tag({ "1", "2", "3", "4", "5", "6", "7", "8", "9" }, s, awful.layout.layouts[1])
+end)
 
 
 -- {{{ Mouse bindings
@@ -211,7 +200,22 @@ root.buttons(gears.table.join(
     awful.button({ }, 5, awful.tag.viewprev)
 ))
 -- }}}
+-- Fix for maximized windows
+client.connect_signal("property::maximized", function(c)
+    if c.maximized then
+        c:geometry({
+            y = 30,  -- Same as padding-top
+            height = c.screen.workarea.height - 30
+        })
+    end
+end)
 
+-- Fix for floating windows
+client.connect_signal("manage", function(c)
+    if c.floating then
+        c:geometry({ y = math.max(c.y, 30) })  -- Don't let them creep under Polybar
+    end
+end)
 -- {{{ Key bindings
 globalkeys = gears.table.join(
     awful.key({ modkey,           }, "s",      hotkeys_popup.show_help,
@@ -495,7 +499,6 @@ client.connect_signal("manage", function (c)
 end)
 
 
-
 -- Enable sloppy focus, so that focus follows mouse.
 client.connect_signal("mouse::enter", function(c)
     c:emit_signal("request::activate", "mouse_enter", {raise = false})
@@ -505,22 +508,23 @@ client.connect_signal("focus", function(c) c.border_color = beautiful.border_foc
 client.connect_signal("unfocus", function(c) c.border_color = beautiful.border_normal end)
 -- }}}
 
-
 --Gaps
-beautiful.useless_gap  = 3
+beautiful.useless_gap  = 4
 
 -- Adjust the gap size as needed
-awful.layout.suit.tile.left.gaps = { top = 45 }
+awful.layout.suit.tile.left.gaps = { top = 35 }
 
 --Autostart
 awful.spawn.with_shell("picom")
-awful.spawn.with_shell("polybar main")
+awful.spawn.with_shell("polybar primary")
+awful.spawn.with_shell("polybar secondary")
 awful.spawn.with_shell("kitty")
-awful.spawn.with_shell("nitrogen --set-zoom-fill --random ~/Pictures/Wallpapers/") 
+awful.spawn.with_shell("nitrogen --set-zoom-fill --head=1 --random ~/Pictures/Wallpapers/")
+awful.spawn.with_shell("nitrogen --set-zoom-fill --head=0 --random ~/Pictures/Wallpapers/")
 
 -- Customize Naughty Notifications
     -- position of notifications default = top_right
-naughty.config.defaults.position = "top_left"
+naughty.config.defaults.position = "bottom_left"
     -- add rounded corners
 naughty.config.defaults.shape = function(cr, width, height)
     gears.shape.rounded_rect(cr, width, height, 10)
@@ -528,3 +532,19 @@ end
 beautiful.notification_max_height = 300
 beautiful.notification_max_width = 250
 beautiful.notification_icon_size = 72
+
+-- Disable the default AwesomeWM wibar
+for s in screen do
+    if s.mywibox then
+        s.mywibox.visible = false
+    end
+end
+
+--debug window placement 
+client.connect_signal("manage", function(c)
+    naughty.notify({
+        title = "New Window",
+        text = "Screen: " .. c.screen.index .. " | Tag: " .. c.first_tag.name,
+        timeout = 5
+    })
+end)
